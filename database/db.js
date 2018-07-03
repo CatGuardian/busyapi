@@ -2,7 +2,7 @@ const MongoClient = require('mongodb').MongoClient;
 const assert = require('assert');
 
 // connection url
-const url = 'mongodb://localhost:27017';
+const url = process.env.MONGODBURL || 'mongodb://localhost:27017';
 
 // Database Name
 const dbName = 'busyapi';
