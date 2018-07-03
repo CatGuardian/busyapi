@@ -32,7 +32,7 @@ A. First here is the log of the changes I made to this repo:
 12. Added 'bombardier' folder.
 13. Added README.txt file in the bombardier folder that explains how to use bombardier to load test the system locally.
 
-14. Removed morgan logger and any other potential things that would write to the console because writing to the console is blocking.
+14. Removed morgan logger and any other potential things that would write to the console because writing to the console is a blocking operation.
 15. Set NODE_ENV to 'production'
 
 
@@ -104,6 +104,11 @@ Answer:
    happens in its own server. This will minimize the number of web page requests and allow the server to focus on
    API requests.
 
+   One moe thing that can be done is to ensure we are following the Express.js production guide. It includes a bunch
+   of insight on what should be done before releasing the express.js server into a production environment. I did not
+   have enough time to go through this guide and perform its recommendations. But one of them is setting NODE_ENV to
+   production which I did do. http://expressjs.com/en/advanced/best-practice-performance.html
+
 Question 2: Suggested changes to the physical architecture/hardware that may achieve the goal
 Answer:
     First is that the API needs to be containerized. Which I did using docker. So I made the API into a docker image.
@@ -123,7 +128,30 @@ Answer:
     That section was just talking about scaling the API server code and not talking about the mongo database. So the
     second thing that will enable us to scale to 1M requests per minute and beyond is making sure our database can scale
     up as well. So I chose mongo db for the job because it is inherently able to work on a distributed system. Meaning
-    mongo db supports more than one mongo server working together for the same database. 
+    mongo db supports more than one mongo server working together for the same database. So another suggestion would be
+    to utilize a mongoDb service that allows you to have multiple mongoDb servers hookers up in a distributed system.
+    This is made possible through sharding and replica sets.
 
-A working build of the code capable of achieving the goal
-Methods of measuring whether or not the goal has been achieved
+    Another thing that would have made my PC perform better would have been to have a Solid State Drive.
+
+Question 3. A working build of the code capable of achieving the goal
+Answer:
+    I believe I do have a working build of the code capable of achieving the goal of 1M requests per minute.
+    I do have the code. It needs to be turned into a docker image (see docker/README.txt) but that image is
+    capable of doing what you want. You just have to spin up enough linux servers and API containers using that
+    image. Given my data I believe 10 linux servers running 4 API containers each would be able to do it. Probably
+    less than 10 is even needed because my data is based off of my laptop which isn't dedicated to purely running
+    the API server anyways (it is running Windows 10 and Ubuntu Linux, etc...).
+
+Question 4. Methods of measuring whether or not the goal has been achieved
+Answer:
+    I used a basic benchmarking tool that would give me some quick insight into the request load that my code
+    and tech stack is capable of. I used Bombardier for that (see bombardier/README.txt for more info).
+
+    However a more sophisticated method would be needed in order to really load test the scaled up API set up.
+    Especially for 1M requests per minute. I would recommend using some cloud testing tools which allows you to test this
+    exact thing. You would spin up your servers and API docker containers and then set up the testing tool to
+    hit the server via the specifications you gave it. Configure it for 1M requests per minute using x devices,
+    etc... And then observe the testing tool's report. Also you can observe the resource charts of the servers for the
+    duration of the tests. And don't forget to look at the Mongo Db reports of usage and resources as well.
+    All of this will give you an idea of if the system is handling 1M requests per minute.
