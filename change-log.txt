@@ -13,3 +13,8 @@ This log is for the changes I made to this repo.
 // Set the project up for Docker containerization
 8. Added a 'docker' folder.
 9. Added a README.txt file in the docker folder that explains how to: build the docker image and spin up 4 instances of the API container.
+
+// Set up the project for simple load balancing using nginx.
+10. Added an 'nginx' folder.
+11. Added a README.txt file in the nginx folder that explains how to start the nginx server which will load balance the busyapi API requests
+    and dish them out to 4 busyapi API docker containers.
