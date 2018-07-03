@@ -106,7 +106,24 @@ Answer:
 
 Question 2: Suggested changes to the physical architecture/hardware that may achieve the goal
 Answer:
-    
+    First is that the API needs to be containerized. Which I did using docker. So I made the API into a docker image.
+    This docker image can then be started up as many times, on as many servers as we need or want to achieve our goal.
+    In order to scale this up to 1M requests per minute, I would recommend engaging cloud infrastructure. So I can talk
+    about how that would look using Amazon Web Services. First we would have a server base image so that we could spin up
+    as many linux servers as we would like. AWS calls this an EC2 base image. Then amazon can start up EC2 instances using
+    that base image. Then amazon can spin up our API docker image on as many EC2 instances as we configure. Then we hook
+    it up to Amazon's Elastic Load Balancer (ELB) which will then distribute the load of requests to the various server
+    instances that we have set up. And then on top of that we can hook it up to Amazon's auto scaling feature so that
+    we will only have as many server instances / docker API containers as we need for the given moment. Some times of
+    day have higher traffic than others. And so setting up auto scaling triggers allows us to make sure we rise to the 
+    challenge but not have too many resources always allocated. So in the end Amazon determines how many docker API
+    containers are running and Amazon determines how many linux server instances are also running. Fully scalable,
+    unlimited potential, able to handle 1M requests per minute and more!
+
+    That section was just talking about scaling the API server code and not talking about the mongo database. So the
+    second thing that will enable us to scale to 1M requests per minute and beyond is making sure our database can scale
+    up as well. So I chose mongo db for the job because it is inherently able to work on a distributed system. Meaning
+    mongo db supports more than one mongo server working together for the same database. 
 
 A working build of the code capable of achieving the goal
 Methods of measuring whether or not the goal has been achieved
