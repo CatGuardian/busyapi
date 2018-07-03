@@ -18,3 +18,7 @@ This log is for the changes I made to this repo.
 10. Added an 'nginx' folder.
 11. Added a README.txt file in the nginx folder that explains how to start the nginx server which will load balance the busyapi API requests
     and dish them out to 4 busyapi API docker containers.
+
+// Added info on how to test the load of the system using Bombardier
+12. Added 'bombardier' folder.
+13. Added README.txt file in the bombardier folder that explains how to use bombardier to load test the system locally.
