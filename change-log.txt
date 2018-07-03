@@ -1,3 +1,9 @@
 This log is for the changes I made to this repo.
 
 1. Add change-log.txt to the repo.
+2. Add mongodb driver to the package.
+3. Added db.js file in the database folder to set up and connect to the mongodb.
+4. Added README.txt file to the database folder describing how to set up the database using docker.
+5. Updated POST /api/usages endpoint to save the data to the 'Usages' collection of the 'busyapi' mongodb database.
+6. Added a GET /api/usages/count endpoint to return the number of documents in the 'Usages' collection.
+7. Removed unneeded temporary storage for Usages.

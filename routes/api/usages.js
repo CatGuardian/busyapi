@@ -1,12 +1,28 @@
 module.exports = function(app){
+    let Usages;
+
     app.post('/api/usages', function(req, res){
+        Usages = Usages || app.db.collection("Usages");
 
         // Store the supplied usage data
-        app.usages.push(req.body);
+        Usages.insert(req.body, (err, result) => {
+            if (err != null) {
+                res.status(500).json({'message':'An internal error occurred'});
+            }
 
-        var usageId = app.usages.length;
-        console.log('Stored usage count: ' + usageId);
+            res.status(201).json({'id':result.insertedIds[0]});
+        });
+    });
 
-        res.status(201).json({'id':usageId});
+    app.get('/api/usages/count', function(req, res) {
+        Usages = Usages || app.db.collection("Usages");
+
+        Usages.count((err, result) => {
+            if (err != null) {
+                res.status(500).json({'message':'An internal error occurred'});
+            }
+
+            res.status(200).json({'numUsages':result});
+        });
     });
 }
