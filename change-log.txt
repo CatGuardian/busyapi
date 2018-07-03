@@ -1,4 +1,13 @@
-This log is for the changes I made to this repo.
+This file describes the following:
+A. The log of changes I made to the repo.
+B. The results of my efforts.
+C. A summary of what else can be done to enable the API to scale to 1M requests per minute.
+
+
+========================================================================================================================
+
+
+A. First here is the log of the changes I made to this repo:
 
 1. Add change-log.txt to the repo.
 
@@ -25,3 +34,79 @@ This log is for the changes I made to this repo.
 
 14. Removed morgan logger and any other potential things that would write to the console because writing to the console is blocking.
 15. Set NODE_ENV to 'production'
+
+
+========================================================================================================================================
+
+
+B. Here is the results of my efforts.
+
+So I did my best to make this scale to a massive amount of requests using a single computer with 4 CPU cores. My laptop
+also doesn't have a Solid State Drive so yeah. Oh and I did all testing / programming inside of a linux virtual machine on
+my Windows 10 laptop.
+
+What I did was set up a mongoDb to store the Usage data because keeping the data in memory wasn't going to scale.
+See database/README.txt for more detail
+
+Then I turned the API into a docker image that could be spun up as many times as we need to in order to scale us to 1M requests
+per minute. Then I spun up 4 containers because I have 4 CPU cores. See docker/README.txt for more info.
+
+Then I set up a simple nginx server so we could have one API url to hit; namely 'localhost:3000'. And the nginx server will load
+balance the requests between all 4 of the docker API containers. See nginx/README.txt for more info.
+
+And so with all of that I now essentially have scaled up 4 API servers.
+
+Then in order to test the load of the system to see how close I got to our 1M requests per minute, I used Bombardier: a HTTP
+benchmarking tool. See bombardier/README.txt for more info.
+
+The final test I ran had bombardier make 250,000 POST requests to localhost:3000/api/usages. And the result was that the server
+fulfilled roughly 2067 requests per second which means roughly 124,000 requests per minute. Here is the actual output of the linux terminal:
+
+        anthony@anthony-VirtualBox:~$ bombardier -c 1000 -n 250000 http://localhost:3000/api/usages -m POST --body='{"patientId":100,"timestamp":"Tue Nov 01 2016 09:11:51 GMT-0500 (CDT)","medication":"Albuterol"}'
+        Bombarding http://localhost:3000/api/usages with 250000 request(s) using 1000 connection(s)
+        250000 / 250000 [=================================================================================================] 100.00% 2m1s
+        Done!
+        Statistics        Avg      Stdev        Max
+        Reqs/sec      2067.35    1007.52    7557.68
+        Latency      482.70ms   433.80ms      8.19s
+        HTTP codes:
+            1xx - 0, 2xx - 250000, 3xx - 0, 4xx - 0, 5xx - 0
+            others - 0
+        Throughput:     1.01MB/s
+
+So did I make it there (1M requests per minute) with my single 4 core laptop? Well no I didn't. But this should demonstrate to you that I am capable of
+scaling and I have a way of testing whether my code can handle large amounts of requests. According to the data I would only need
+roughly 10 equivalent set ups of my laptop to scale to 1M requests per minute. So no my laptop alone can't handle 1M requests per minute but in the 
+next section I will discuss how we can scale this API using the pattern I demonstrated here on 1 physical PC.
+
+
+====================================================================================================================================
+
+C. Here is a discussion of how to use what I have started to fully scale this API up.
+
+In the original assessment email there was some questions that should be included in the write up.
+So the point of this section is to describe what can be done to fully scale this API up which is really
+what the questions are about. So this section will take the form of a Q & A where the questions come from
+the email.
+
+
+Question 1: Suggested changes to the software architecture/stack that may achieve the goal
+Answer:
+   One thing that can be done is to store some of the Usages and after a bunch of Usages are ready to be saved
+   then write to the database. So instead of each POST request resulting in an insert into the mongoDb what we could
+   do wait until we store 1,000 Usage posts in memory or wait every 2 seconds (which ever one comes first) and then
+   call a .insertMany to limit the number of overhead costs with database communication. This is possible
+   because I do believe there is a way to generate a MongoDb Object Id on the API server. Thus we would be able to
+   send back the Usage Id like we need to but we can wait and save it later using that same id.
+
+   Another thing is that I noticed we do technically have some html that can be served up. I am viewing this more as
+   an API than something that servers webpages. But one thing we will want to make sure is that the serving of webpages
+   happens in its own server. This will minimize the number of web page requests and allow the server to focus on
+   API requests.
+
+Question 2: Suggested changes to the physical architecture/hardware that may achieve the goal
+Answer:
+    
+
+A working build of the code capable of achieving the goal
+Methods of measuring whether or not the goal has been achieved
