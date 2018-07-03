@@ -22,3 +22,6 @@ This log is for the changes I made to this repo.
 // Added info on how to test the load of the system using Bombardier
 12. Added 'bombardier' folder.
 13. Added README.txt file in the bombardier folder that explains how to use bombardier to load test the system locally.
+
+14. Removed morgan logger and any other potential things that would write to the console because writing to the console is blocking.
+15. Set NODE_ENV to 'production'

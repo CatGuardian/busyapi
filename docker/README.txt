@@ -18,21 +18,25 @@ In order to spin up 4 containers after building the image do the following:
     sudo docker run \
         -d \
         -e "MONGODBURL=mongodb://10.0.2.15:27017" \
+        -e "NODE_ENV=production" \
         -p 3700:3000 \
         busyapi &&  \
     sudo docker run \
         -d \
         -e "MONGODBURL=mongodb://10.0.2.15:27017" \
+        -e "NODE_ENV=production" \
         -p 3701:3000 \
         busyapi && \
     sudo docker run \
         -d \
         -e "MONGODBURL=mongodb://10.0.2.15:27017" \
+        -e "NODE_ENV=production" \
         -p 3702:3000 \
         busyapi && \
     sudo docker run \
         -d \
         -e "MONGODBURL=mongodb://10.0.2.15:27017" \
+        -e "NODE_ENV=production" \
         -p 3703:3000 \
         busyapi
 
