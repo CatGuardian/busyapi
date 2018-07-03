@@ -1,0 +1,3 @@
+This log is for the changes I made to this repo.
+
+1. Add change-log.txt to the repo.
