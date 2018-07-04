@@ -16,7 +16,7 @@ To run bombardier do the following:
 3. Make sure the nginx server is set up. Follow nginx/README.txt
 4. Make sure bombardier is installed. See above.
 5. Run the following command and observe the output. Replace the number after -n with the number of requests you want to send.
-       bombardier -c 1000 -n 250000 http://localhost:3000/api/usages -m POST --body='{"patientId":100,"timestamp":"Tue Nov 01 2016 09:11:51 GMT-0500 (CDT)","medication":"Albuterol"}'
+       bombardier -t 10s -c 1000 -n 250000 http://localhost:3000/api/usages -m POST --body='{"patientId":100,"timestamp":"Tue Nov 01 2016 09:11:51 GMT-0500 (CDT)","medication":"Albuterol"}'
 
 
 

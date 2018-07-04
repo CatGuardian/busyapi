@@ -35,6 +35,14 @@ A. First here is the log of the changes I made to this repo:
 14. Removed morgan logger and any other potential things that would write to the console because writing to the console is a blocking operation.
 15. Set NODE_ENV to 'production'
 
+16. Rewrite the usage endpoint so that it will save the Usage records in memory for 5 seconds and then bulk write the saved up usage records
+    So every 5 seconds a bulk write of the usage records that exist in memory will be written to the database.
+    This definitely increases performance. But it might not be feasible to do this in a real world scenario. It depends on what else
+    is done with the Usage records and whether or not they need to be immediately saved to the database.
+17. Reduced the number of busyapi Docker containers to 3. The reason is I have 4 CPU cores and I wanted to give the mongodb a core.
+    So 3 cores for the 3 docker API containers and 1 core for the mongodb docker container. This did improve performance.
+18. Updated documentation to reflect the rewrite to do a bulk database write instead of 1 request = 1 database write
+
 
 ========================================================================================================================================
 
@@ -49,34 +57,35 @@ What I did was set up a mongoDb to store the Usage data because keeping the data
 See database/README.txt for more detail
 
 Then I turned the API into a docker image that could be spun up as many times as we need to in order to scale us to 1M requests
-per minute. Then I spun up 4 containers because I have 4 CPU cores. See docker/README.txt for more info.
+per minute. Then I spun up 3 containers because I have 4 CPU cores (3 CPU cores for 3 API containers and 1 core for the mongoDb server).
+See docker/README.txt for more info.
 
 Then I set up a simple nginx server so we could have one API url to hit; namely 'localhost:3000'. And the nginx server will load
-balance the requests between all 4 of the docker API containers. See nginx/README.txt for more info.
+balance the requests between all 3 of the docker API containers. See nginx/README.txt for more info.
 
-And so with all of that I now essentially have scaled up 4 API servers.
+And so with all of that I now essentially have scaled up 3 API servers.
 
 Then in order to test the load of the system to see how close I got to our 1M requests per minute, I used Bombardier: a HTTP
 benchmarking tool. See bombardier/README.txt for more info.
 
 The final test I ran had bombardier make 250,000 POST requests to localhost:3000/api/usages. And the result was that the server
-fulfilled roughly 2067 requests per second which means roughly 124,000 requests per minute. Here is the actual output of the linux terminal:
+fulfilled roughly 4,979 requests per second which means roughly 298,740 requests per minute. Here is the actual output of the linux terminal:
 
-        anthony@anthony-VirtualBox:~$ bombardier -c 1000 -n 250000 http://localhost:3000/api/usages -m POST --body='{"patientId":100,"timestamp":"Tue Nov 01 2016 09:11:51 GMT-0500 (CDT)","medication":"Albuterol"}'
+        anthony@anthony-VirtualBox:~$ bombardier -t 10s -c 1000 -n 250000 http://localhost:3000/api/usages -m PO0,"timestamp":"Tue Nov 01 2016 09:11:51 GMT-0500 (CDT)","medication":"Albuterol"}'
         Bombarding http://localhost:3000/api/usages with 250000 request(s) using 1000 connection(s)
-        250000 / 250000 [=================================================================================================] 100.00% 2m1s
+        250000 / 250000 [===================================================================================================] 100.00% 50s
         Done!
         Statistics        Avg      Stdev        Max
-        Reqs/sec      2067.35    1007.52    7557.68
-        Latency      482.70ms   433.80ms      8.19s
+        Reqs/sec      4979.02    1840.25   18098.36
+        Latency      199.32ms   291.86ms      4.19s
         HTTP codes:
             1xx - 0, 2xx - 250000, 3xx - 0, 4xx - 0, 5xx - 0
             others - 0
-        Throughput:     1.01MB/s
+        Throughput:     2.38MB/s
 
 So did I make it there (1M requests per minute) with my single 4 core laptop? Well no I didn't. But this should demonstrate to you that I am capable of
 scaling and I have a way of testing whether my code can handle large amounts of requests. According to the data I would only need
-roughly 10 equivalent set ups of my laptop to scale to 1M requests per minute. So no my laptop alone can't handle 1M requests per minute but in the 
+roughly 4 equivalent set ups of my laptop to scale to 1M requests per minute. So no my laptop alone can't handle 1M requests per minute but in the 
 next section I will discuss how we can scale this API using the pattern I demonstrated here on 1 physical PC.
 
 
@@ -92,17 +101,25 @@ the email.
 
 Question 1: Suggested changes to the software architecture/stack that may achieve the goal
 Answer:
-   One thing that can be done is to store some of the Usages and after a bunch of Usages are ready to be saved
-   then write to the database. So instead of each POST request resulting in an insert into the mongoDb what we could
-   do wait until we store 1,000 Usage posts in memory or wait every 2 seconds (which ever one comes first) and then
-   call a .insertMany to limit the number of overhead costs with database communication. This is possible
-   because I do believe there is a way to generate a MongoDb Object Id on the API server. Thus we would be able to
-   send back the Usage Id like we need to but we can wait and save it later using that same id.
+   I just want to take a moment to discuss a decision I made. I originally started out so that each POST api/usages request
+   would result in a single database insert to save that usage right away. But then I figured performance would increase if I
+   saved up a bunch of the Usage objects that need to be saved and then save a bunch of them in a bulk operation. So I made
+   the changes to save up the Usage objects for 5 seconds and then do an .insertMany to insert all of the Usage objects saved
+   in memory. So every 5 seconds a .insertMany is made to the database instead of .insertOne each request. This more than doubled
+   the amount of requests per second that were handled. Now this might not always be possible. It really depends on how the Usage
+   objects are used in the rest of the system. If the Usage objects need to be saved right away as they come in, then it wouldn't
+   be possible to wait 5 seconds to save them. So it depends on the scenario if this technique can be used or not.
 
    Another thing is that I noticed we do technically have some html that can be served up. I am viewing this more as
    an API than something that servers webpages. But one thing we will want to make sure is that the serving of webpages
    happens in its own server. This will minimize the number of web page requests and allow the server to focus on
    API requests.
+
+   Another thing that can be experimented with is creating a node cluster and then containerizing the node cluster. Then we can
+   spin up Docker instances of the node cluster. Then we could hook up the nginx server (or whatever other load balancer we use)
+   to hit the node clusters. So for example, we could set up a node cluster that contains 4 instances of the node API server. Then
+   we could containerize that node cluster. And then we could spin up 3 (or however many we want) of the clusters. If we have 3
+   clusters with 4 API instances each, then  we would effectively have 12 API servers.
 
    One moe thing that can be done is to ensure we are following the Express.js production guide. It includes a bunch
    of insight on what should be done before releasing the express.js server into a production environment. I did not
@@ -137,10 +154,10 @@ Answer:
 Question 3. A working build of the code capable of achieving the goal
 Answer:
     I believe I do have a working build of the code capable of achieving the goal of 1M requests per minute.
-    I do have the code. It needs to be turned into a docker image (see docker/README.txt) but that image is
+    I do have the code. The code needs to be turned into a docker image (see docker/README.txt) but that image is
     capable of doing what you want. You just have to spin up enough linux servers and API containers using that
-    image. Given my data I believe 10 linux servers running 4 API containers each would be able to do it. Probably
-    less than 10 is even needed because my data is based off of my laptop which isn't dedicated to purely running
+    image. Given my data I believe 4 linux servers running 3 API containers each would be able to do it. Probably
+    only 3 is even needed because my data is based off of my laptop which isn't dedicated to purely running
     the API server anyways (it is running Windows 10 and Ubuntu Linux, etc...).
 
 Question 4. Methods of measuring whether or not the goal has been achieved

@@ -4,6 +4,8 @@ const assert = require('assert');
 // connection url
 const url = process.env.MONGODBURL || 'mongodb://localhost:27017';
 
+console.log('Mongo URL = ', url); // debug only remove
+
 // Database Name
 const dbName = 'busyapi';
 
